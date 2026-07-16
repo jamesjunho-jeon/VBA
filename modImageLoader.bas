@@ -17,6 +17,8 @@
 '    새 파일로 교체됩니다.
 ' 5) 이미지를 더 추가하려면 ImageConfig 시트에 행을 추가하면 됩니다
 '    (이름이 다른 이미지를 원하는 개수만큼 추가 가능).
+' 6) "모양" 열에 사각형/원형/타원/둥근사각형 중 하나를 입력하면 해당 모양으로
+'    잘려서 삽입됩니다. 비워두면 기존처럼 사각형 사진으로 삽입됩니다.
 '===============================================================
 Option Explicit
 
@@ -54,9 +56,10 @@ Sub InstallImageLoader()
         .Range("E1").Value = "표시시트명(비우면 이 시트)"
         .Range("F1").Value = "너비(pt, 선택)"
         .Range("G1").Value = "높이(pt, 선택)"
-        .Range("H1").Value = "상태"
-        .Range("A1:H1").Font.Bold = True
-        .Columns("A:H").AutoFit
+        .Range("H1").Value = "모양(사각형/원형/타원/둥근사각형)"
+        .Range("I1").Value = "상태"
+        .Range("A1:I1").Font.Bold = True
+        .Columns("A:I").AutoFit
     End With
 
     If ws.Cells(2, "B").Value = "" Then
@@ -65,6 +68,7 @@ Sub InstallImageLoader()
         ws.Cells(2, "C").Value = "sample1"
         ws.Cells(2, "D").Value = "E2"
         ws.Cells(2, "E").Value = ws.Name
+        ws.Cells(2, "H").Value = "사각형"
     End If
 
     On Error Resume Next
@@ -94,6 +98,7 @@ Sub UpdateAllImages()
     Dim folderPath As String, fileNameRaw As String
     Dim anchorAddr As String, targetSheetName As String
     Dim widthPt As Variant, heightPt As Variant
+    Dim shapeTypeRaw As String
     Dim filePath As String
     Dim successCount As Long, failCount As Long
     Dim failList As String
@@ -122,6 +127,7 @@ Sub UpdateAllImages()
         targetSheetName = Trim(wsConfig.Cells(r, "E").Value)
         widthPt = wsConfig.Cells(r, "F").Value
         heightPt = wsConfig.Cells(r, "G").Value
+        shapeTypeRaw = Trim(wsConfig.Cells(r, "H").Value)
 
         If folderPath = "" Or fileNameRaw = "" Or anchorAddr = "" Then GoTo ContinueLoop
 
@@ -137,7 +143,7 @@ Sub UpdateAllImages()
         If wsTarget Is Nothing Then
             failCount = failCount + 1
             failList = failList & vbNewLine & r & "행: 시트 '" & targetSheetName & "' 없음"
-            wsConfig.Cells(r, "H").Value = "실패: 시트없음"
+            wsConfig.Cells(r, "I").Value = "실패: 시트없음"
             GoTo ContinueLoop
         End If
 
@@ -146,15 +152,15 @@ Sub UpdateAllImages()
         If filePath = "" Then
             failCount = failCount + 1
             failList = failList & vbNewLine & r & "행: 파일 없음 (" & fileNameRaw & ")"
-            wsConfig.Cells(r, "H").Value = "실패: 파일없음"
+            wsConfig.Cells(r, "I").Value = "실패: 파일없음"
         Else
-            If PlaceImage(wsTarget, anchorAddr, filePath, widthPt, heightPt) Then
+            If PlaceImage(wsTarget, anchorAddr, filePath, widthPt, heightPt, shapeTypeRaw) Then
                 successCount = successCount + 1
-                wsConfig.Cells(r, "H").Value = "성공 " & Format(Now, "hh:nn:ss")
+                wsConfig.Cells(r, "I").Value = "성공 " & Format(Now, "hh:nn:ss")
             Else
                 failCount = failCount + 1
                 failList = failList & vbNewLine & r & "행: 삽입 실패"
-                wsConfig.Cells(r, "H").Value = "실패: 삽입오류"
+                wsConfig.Cells(r, "I").Value = "실패: 삽입오류"
             End If
         End If
 
@@ -225,21 +231,29 @@ End Function
 
 '---------------------------------------------------------------
 ' 지정 시트의 anchorAddr(셀주소) 위치에 이미지를 삽입한다.
-' 같은 위치에 이미 삽입된 이미지가 있으면 이름으로 찾아 삭제 후 재삽입(교체).
+' 같은 위치에 이미 삽입된 도형/이미지가 있으면 이름으로 찾아 삭제 후 재삽입(교체).
+' shapeTypeRaw: ""/"사각형" = 사진 그대로 삽입(기본), "원형"/"타원"/"둥근사각형" = 해당 도형에 사진을 채워 넣음.
 '---------------------------------------------------------------
 Private Function PlaceImage(ByVal ws As Worksheet, ByVal anchorAddr As String, _
                              ByVal filePath As String, ByVal widthPt As Variant, _
-                             ByVal heightPt As Variant) As Boolean
+                             ByVal heightPt As Variant, ByVal shapeTypeRaw As String) As Boolean
     Dim anchorCell As Range
     Dim shapeName As String
     Dim shp As Shape
     Dim pic As Shape
+    Dim newShp As Shape
+    Dim autoShapeType As Long
+    Dim useShapeFill As Boolean
+    Dim forceSquare As Boolean
+    Dim normType As String
+    Dim shpW As Double, shpH As Double
 
     On Error GoTo Fail
 
     Set anchorCell = ws.Range(anchorAddr)
     shapeName = "IMG_" & Replace(anchorAddr, "$", "")
 
+    ' 같은 위치에 이미 삽입된 도형/사진이 있으면 종류에 상관없이 삭제 후 재삽입
     For Each shp In ws.Shapes
         If shp.Name = shapeName Then
             shp.Delete
@@ -247,31 +261,75 @@ Private Function PlaceImage(ByVal ws As Worksheet, ByVal anchorAddr As String, _
         End If
     Next shp
 
-    Set pic = ws.Shapes.AddPicture(filePath, msoFalse, msoTrue, _
-        anchorCell.Left, anchorCell.Top, -1, -1)
+    normType = LCase(shapeTypeRaw)
+    useShapeFill = True
+    forceSquare = False
 
-    pic.Name = shapeName
-    pic.Placement = xlMoveAndSize
+    Select Case normType
+        Case "", "사각형"
+            useShapeFill = False
+        Case "원형", "원", "circle"
+            autoShapeType = msoShapeOval
+            forceSquare = True
+        Case "타원", "ellipse", "oval"
+            autoShapeType = msoShapeOval
+        Case "둥근사각형", "rounded"
+            autoShapeType = msoShapeRoundedRectangle
+        Case Else
+            useShapeFill = False ' 알 수 없는 값은 기본 사각형 사진으로 처리
+    End Select
 
-    If IsNumeric(widthPt) And widthPt > 0 Then
-        pic.LockAspectRatio = msoFalse
-        pic.Width = CDbl(widthPt)
-        If IsNumeric(heightPt) And heightPt > 0 Then
+    If Not useShapeFill Then
+        ' 기존 방식: 사진을 그대로 삽입
+        Set pic = ws.Shapes.AddPicture(filePath, msoFalse, msoTrue, _
+            anchorCell.Left, anchorCell.Top, -1, -1)
+
+        pic.Name = shapeName
+        pic.Placement = xlMoveAndSize
+
+        If IsNumeric(widthPt) And widthPt > 0 Then
+            pic.LockAspectRatio = msoFalse
+            pic.Width = CDbl(widthPt)
+            If IsNumeric(heightPt) And heightPt > 0 Then
+                pic.Height = CDbl(heightPt)
+            Else
+                pic.LockAspectRatio = msoTrue
+            End If
+        ElseIf IsNumeric(heightPt) And heightPt > 0 Then
+            pic.LockAspectRatio = msoTrue
             pic.Height = CDbl(heightPt)
         Else
-            pic.LockAspectRatio = msoTrue
+            pic.LockAspectRatio = msoFalse
+            pic.Width = anchorCell.Width
+            pic.Height = anchorCell.Height
         End If
-    ElseIf IsNumeric(heightPt) And heightPt > 0 Then
-        pic.LockAspectRatio = msoTrue
-        pic.Height = CDbl(heightPt)
-    Else
-        pic.LockAspectRatio = msoFalse
-        pic.Width = anchorCell.Width
-        pic.Height = anchorCell.Height
-    End If
 
-    pic.Top = anchorCell.Top
-    pic.Left = anchorCell.Left
+        pic.Top = anchorCell.Top
+        pic.Left = anchorCell.Left
+    Else
+        ' 도형(원형/타원/둥근사각형)에 사진을 채워 넣는 방식
+        If IsNumeric(widthPt) And widthPt > 0 Then
+            shpW = CDbl(widthPt)
+        Else
+            shpW = anchorCell.Width
+        End If
+
+        If IsNumeric(heightPt) And heightPt > 0 Then
+            shpH = CDbl(heightPt)
+        Else
+            shpH = anchorCell.Height
+        End If
+
+        If forceSquare Then
+            If shpH < shpW Then shpW = shpH Else shpH = shpW
+        End If
+
+        Set newShp = ws.Shapes.AddShape(autoShapeType, anchorCell.Left, anchorCell.Top, shpW, shpH)
+        newShp.Name = shapeName
+        newShp.Placement = xlMoveAndSize
+        newShp.Fill.UserPicture filePath
+        newShp.Line.Visible = msoFalse
+    End If
 
     PlaceImage = True
     Exit Function
