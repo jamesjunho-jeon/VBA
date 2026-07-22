@@ -1,0 +1,141 @@
+#Requires AutoHotkey v2.0
+#Include Config.ahk2
+#Include Logger.ahk2
+;==============================================================
+; ExcelController.ahk2
+; 업무 정의: 1(엑셀 초기 구성 전제), 9(캡쳐자동화-필터),
+;            10/14(영역 복사) 단계에서 사용하는 Excel COM 래퍼.
+;
+; 전제(1번): 활성 시트는 제목+표로 구성되고 표에는 이미 자동
+; 필터가 걸려 있다(드롭다운 화살표 존재). 필터 기준값 목록은
+; 별도 시트(필터시트)의 A열(헤더 제외)에 있다.
+;
+; 참고: Excel AutoFilter는 구조적으로 "헤더 1행"만 인식한다.
+; 표 위에 제목이 여러 줄 있어도(요구사항의 "여러줄 헤더") 그
+; 행들은 AutoFilter 범위 밖에 있으므로 시작셀(②)만 정확하면
+; 캡처 영역 계산에는 영향이 없다.
+;==============================================================
+
+class ExcelController {
+    __New() {
+        this.App := ""
+        this.Workbook := ""
+        this.MainSheet := ""
+    }
+
+    ; 실행 중인 Excel에 연결한다 (1번 전제 검증 포함)
+    Attach() {
+        try {
+            this.App := ComObjActive("Excel.Application")
+        } catch {
+            throw TargetError("실행 중인 Excel을 찾을 수 없습니다. Excel과 대상 통합문서를 먼저 열어주세요.")
+        }
+        this.Workbook := this.App.ActiveWorkbook
+        if !IsObject(this.Workbook)
+            throw TargetError("활성화된 Excel 통합문서가 없습니다.")
+        this.MainSheet := this.App.ActiveSheet
+        if !IsObject(this.MainSheet)
+            throw TargetError("활성화된 시트를 확인할 수 없습니다.")
+
+        af := ""
+        try af := this.MainSheet.AutoFilter
+        if !IsObject(af)
+            throw TargetError("활성 시트에 자동 필터가 설정되어 있지 않습니다. (1번 전제 확인 필요)")
+
+        Logger.Info("Excel 연결 완료: " this.Workbook.Name " / " this.MainSheet.Name)
+        return this.MainSheet
+    }
+
+    GetActiveSheet() => this.MainSheet
+
+    ActivateSheet(sheet) {
+        try {
+            sheet.Activate()
+        } catch as e {
+            throw TargetError("시트를 활성화할 수 없습니다: " e.Message)
+        }
+        WinActivate(Config.ExcelProcess)
+        Sleep(Config.WaitShort)
+    }
+
+    ; 3번 입력값(필터시트)의 A열(헤더 제외) 값을 배열로 반환한다.
+    GetFilterList(sheetName) {
+        try {
+            sheet := this.Workbook.Worksheets(sheetName)
+        } catch {
+            throw ValueError("필터시트 '" sheetName "'를 찾을 수 없습니다.")
+        }
+
+        list := []
+        lastRow := sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row  ; xlUp
+        if lastRow < 2
+            return list
+
+        loop lastRow - 1 {
+            r := A_Index + 1
+            v := sheet.Cells(r, 1).Value
+            if v != ""
+                list.Push(v)
+        }
+        return list
+    }
+
+    ; 9/14번: 필터셀 주소(④)가 속한 열을 기준으로 단일 값 필터를 적용한다.
+    ; 반환값: 필터 후 데이터 행이 1건 이상이면 true, 없으면 false(=건너뛰기 대상)
+    ApplyFilter(sheet, filterCellAddr, value) {
+        af := ""
+        try af := sheet.AutoFilter
+        if !IsObject(af)
+            throw TargetError("대상 시트에 자동필터가 설정되어 있지 않습니다.")
+
+        afRange := af.Range
+        targetCol := sheet.Range(filterCellAddr).Column
+        fieldIndex := targetCol - afRange.Columns(1).Column + 1
+        if fieldIndex < 1 || fieldIndex > afRange.Columns.Count
+            throw ValueError("필터셀 주소가 자동필터 범위를 벗어났습니다: " filterCellAddr)
+
+        try {
+            afRange.AutoFilter(fieldIndex, String(value))
+        } catch as e {
+            throw TargetError("필터 적용 중 오류(필터값: " value "): " e.Message)
+        }
+        Sleep(Config.WaitMedium)
+
+        return this._CountVisibleDataRows(afRange) > 0
+    }
+
+    _CountVisibleDataRows(afRange) {
+        try {
+            visible := afRange.Columns(1).SpecialCells(12)  ; xlCellTypeVisible
+        } catch {
+            return 0   ; 보이는 셀이 전혀 없음(SpecialCells 예외) = 매치 없음
+        }
+        total := 0
+        for area in visible.Areas
+            total += area.Rows.Count
+        return total - 1   ; AutoFilter 범위의 헤더 1행 제외
+    }
+
+    ; 10/14번: 시작셀(②)부터 필터된 표의 마지막 열/행까지 범위를 계산한다.
+    GetCopyRange(sheet, startCellAddr) {
+        afRange := sheet.AutoFilter.Range
+        lastRow := afRange.Row + afRange.Rows.Count - 1
+        lastCol := afRange.Column + afRange.Columns.Count - 1
+
+        startCell := sheet.Range(startCellAddr)
+        endCell := sheet.Cells(lastRow, lastCol)
+        return sheet.Range(startCell, endCell)
+    }
+
+    ; 10번: "이미지 형태" 요구사항을 만족시키기 위해 셀 복사가 아닌
+    ; 그림(Picture) 형식으로 클립보드에 복사한다.
+    CopyRangeAsPicture(range) {
+        try {
+            range.CopyPicture(1, 2)   ; Appearance:=xlScreen(1), Format:=xlPicture(2)
+        } catch as e {
+            throw TargetError("영역을 그림으로 복사하지 못했습니다: " e.Message)
+        }
+        if !ClipWait(Config.ClipWaitSec, 1)
+            throw TimeoutError("클립보드에 복사된 이미지를 확인하지 못했습니다.")
+    }
+}
