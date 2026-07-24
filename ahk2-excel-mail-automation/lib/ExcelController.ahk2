@@ -138,4 +138,19 @@ class ExcelController {
         if !ClipWait(Config.ClipWaitSec, 1)
             throw TimeoutError("클립보드에 복사된 이미지를 확인하지 못했습니다.")
     }
+
+    ; 작업 취소/완료 시 공통 정리: 필터 조건을 해제하여 전체 목록을 다시 표시한다.
+    ; 자동필터 자체(드롭다운)는 유지하고 조건(criteria)만 지운다 -> Worksheet.ShowAllData
+    ; 필터가 걸려 있지 않은 상태에서 호출해도 안전하도록 FilterMode를 먼저 확인한다.
+    ClearFilter(sheet) {
+        if !IsObject(sheet)
+            return
+        try {
+            if sheet.FilterMode
+                sheet.ShowAllData()
+            Logger.Info("필터 해제 완료: 전체 목록 표시")
+        } catch as e {
+            Logger.Warn("필터 해제 중 경고(무시하고 진행): " e.Message)
+        }
+    }
 }

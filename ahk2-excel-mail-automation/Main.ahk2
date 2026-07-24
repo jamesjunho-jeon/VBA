@@ -50,5 +50,10 @@ StartAutomation(*) {
 
 StopAndExit(*) {
     Logger.Info("ESC 입력으로 매크로 중단 및 스크립트 종료")
+    ; 보완: 실행 도중 Esc로 즉시 종료하는 경우, Workflow.Run()의 finally를
+    ; 거치지 않고 프로세스가 바로 죽으므로 여기서 별도로 필터를 해제한다.
+    if IsObject(Workflow.ActiveExcel) {
+        try Workflow.ActiveExcel.ClearFilter(Workflow.ActiveSheet)
+    }
     ExitApp()
 }

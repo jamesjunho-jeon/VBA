@@ -19,9 +19,18 @@
 ;     기준으로 하고, 사용자가 입력한 반복횟수(⑦)는 확인/경고용
 ;     참고값으로 사용한다. 실제 데이터가 먼저 끝나면 그 시점에
 ;     발송하고 종료한다(17번).
+;   - 보완: 작업이 취소되거나(오류/사용자중단 포함) 완료되면
+;     필터 조건을 해제하여 원래의 전체 목록이 다시 보이도록 한다.
+;     (Esc로 즉시 종료하는 경로는 Main.ahk2 참고 - ActiveExcel/
+;      ActiveSheet를 통해 별도로 정리한다)
 ;==============================================================
 
 class Workflow {
+    ; Esc 등 외부에서 즉시 종료할 때도 필터를 해제할 수 있도록
+    ; 현재 실행 중인 엑셀 컨트롤러/시트를 노출해 둔다.
+    static ActiveExcel := ""
+    static ActiveSheet := ""
+
     static Run() {
         Logger.Info("=== 자동화 시작 ===")
 
@@ -43,6 +52,20 @@ class Workflow {
             return
         }
 
+        ; 이 시점부터 필터를 건드리므로, 어떤 경로로 끝나든(완료/오류/취소)
+        ; finally 에서 반드시 필터를 해제한다.
+        Workflow.ActiveExcel := excel
+        Workflow.ActiveSheet := mainSheet
+        try {
+            Workflow._Execute(excel, mainSheet, filterList, userInput)
+        } finally {
+            excel.ClearFilter(mainSheet)   ; 보완: 취소/완료 시 전체 목록 복원
+            Workflow.ActiveExcel := ""
+            Workflow.ActiveSheet := ""
+        }
+    }
+
+    static _Execute(excel, mainSheet, filterList, userInput) {
         actualCount := filterList.Length
         declaredCount := userInput["RepeatCount"]
 
