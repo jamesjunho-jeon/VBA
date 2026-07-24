@@ -1,8 +1,8 @@
 #Requires AutoHotkey v2.0
-#Include Config.ahk2
-#Include WaitUtil.ahk2
+#Include Config.ahk
+#Include WaitUtil.ahk
 ;==============================================================
-; MailController.ahk2
+; MailController.ahk
 ; 업무 정의: 11(메일발송 열기), 12(메일제목 출력),
 ;            13(메일주소 출력), 15(붙여넣기), 17(최종 발송)
 ; "메일" 창(엣지) 대상 키보드 자동화를 담당한다.
@@ -44,7 +44,7 @@ class MailController {
     ; 15번: 본문에 붙여넣기(Ctrl+V) + 아래방향키 + 엔터
     ; (이 라운드에서 캡쳐한 이미지 1건을 본문에 삽입한다.
     ;  '반복횟수'는 라운드마다 이 메서드가 다시 호출되는 횟수로 구현되어 있으며,
-    ;  Workflow.ahk2 의 메인 루프가 라운드 수를 제어한다)
+    ;  Workflow.ahk 의 메인 루프가 라운드 수를 제어한다)
     PasteAndAdvance() {
         Send("^v")
         Sleep(Config.WaitLong)   ; 붙여넣기(이미지 렌더링) 완료 대기

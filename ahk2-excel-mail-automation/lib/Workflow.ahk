@@ -1,13 +1,13 @@
 #Requires AutoHotkey v2.0
-#Include Config.ahk2
-#Include Logger.ahk2
-#Include WaitUtil.ahk2
-#Include ErrorHandler.ahk2
-#Include InputCollector.ahk2
-#Include ExcelController.ahk2
-#Include MailController.ahk2
+#Include Config.ahk
+#Include Logger.ahk
+#Include WaitUtil.ahk
+#Include ErrorHandler.ahk
+#Include InputCollector.ahk
+#Include ExcelController.ahk
+#Include MailController.ahk
 ;==============================================================
-; Workflow.ahk2
+; Workflow.ahk
 ; 업무 정의: 전체 프로세스(1~17번)의 오케스트레이션.
 ;
 ; 확정된 동작 방식(사용자 확인 완료):
@@ -21,7 +21,7 @@
 ;     발송하고 종료한다(17번).
 ;   - 보완: 작업이 취소되거나(오류/사용자중단 포함) 완료되면
 ;     필터 조건을 해제하여 원래의 전체 목록이 다시 보이도록 한다.
-;     (Esc로 즉시 종료하는 경로는 Main.ahk2 참고 - ActiveExcel/
+;     (Esc로 즉시 종료하는 경로는 Main.ahk 참고 - ActiveExcel/
 ;      ActiveSheet를 통해 별도로 정리한다)
 ;==============================================================
 

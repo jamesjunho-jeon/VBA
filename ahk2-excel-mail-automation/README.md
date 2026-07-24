@@ -10,7 +10,7 @@
    표에는 자동 필터가 이미 설정되어 있어야 한다.
 2. 필터 기준값 목록이 있는 시트를 같은 통합문서에 준비한다(A열, 헤더 1행 + 값들).
 3. "메일"이 제목에 포함된 엣지(Edge) 창을 미리 열어둔다.
-4. `Main.ahk2`를 실행한다.
+4. `Main.ahk`를 실행한다.
 5. **F1**을 눌러 매크로를 시작하고, 안내되는 입력창에 순서대로 값을 입력한다.
    - 시작셀(캡처 시작 셀) / 필터시트 이름 / 필터셀 주소 / 메일 제목 /
      메일 주소 / 반복횟수
@@ -23,21 +23,21 @@
 가정/제약사항은 [`ANALYSIS.md`](./ANALYSIS.md) 참고.
 
 ```
-Main.ahk2         엔트리포인트 (F1/Esc 핫키)
-lib/Config.ahk2         환경설정(대기시간, 창 제목, 단축키)
-lib/Logger.ahk2          파일 로그
-lib/WaitUtil.ahk2        대기/재시도 유틸
-lib/ErrorHandler.ahk2    오류 처리 정책
-lib/InputCollector.ahk2  입력 GUI + 검증 + 확인
-lib/ExcelController.ahk2 Excel COM 제어(필터, 캡쳐)
-lib/MailController.ahk2  메일 창 키보드 제어
-lib/Workflow.ahk2        전체 업무 흐름 오케스트레이션
+Main.ahk         엔트리포인트 (F1/Esc 핫키)
+lib/Config.ahk         환경설정(대기시간, 창 제목, 단축키)
+lib/Logger.ahk          파일 로그
+lib/WaitUtil.ahk        대기/재시도 유틸
+lib/ErrorHandler.ahk    오류 처리 정책
+lib/InputCollector.ahk  입력 GUI + 검증 + 확인
+lib/ExcelController.ahk Excel COM 제어(필터, 캡쳐)
+lib/MailController.ahk  메일 창 키보드 제어
+lib/Workflow.ahk        전체 업무 흐름 오케스트레이션
 logs/                    실행 로그 (최초 실행 시 자동 생성)
 ```
 
 ## 환경별 조정이 필요할 수 있는 값
 
-`lib/Config.ahk2`에서 다음을 실제 환경에 맞게 조정한다.
+`lib/Config.ahk`에서 다음을 실제 환경에 맞게 조정한다.
 - `EdgeMailTitle`: 메일 창을 식별하는 제목 문자열
 - `NewMailHotkey` / `SendMailHotkey`: 사용 중인 메일 서비스의 실제 단축키
 - `TabsAfterAddress`: 주소 입력 후 본문까지 이동하는 Tab 횟수

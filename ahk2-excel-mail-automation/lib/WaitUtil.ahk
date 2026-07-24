@@ -1,8 +1,8 @@
 #Requires AutoHotkey v2.0
-#Include Config.ahk2
-#Include Logger.ahk2
+#Include Config.ahk
+#Include Logger.ahk
 ;==============================================================
-; WaitUtil.ahk2
+; WaitUtil.ahk
 ; "각 업무마다 작업이 완료되는 대기시간" 요구사항을 위한 공용
 ; 대기/재시도 헬퍼. 창 전환, 클립보드 준비, 일시적 오류에 대한
 ; 재시도를 한 곳에서 관리한다.

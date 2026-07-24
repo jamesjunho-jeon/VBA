@@ -3,16 +3,16 @@
 SetTitleMatchMode(2)
 SetWorkingDir(A_ScriptDir)
 
-#Include lib\Config.ahk2
-#Include lib\Logger.ahk2
-#Include lib\WaitUtil.ahk2
-#Include lib\ErrorHandler.ahk2
-#Include lib\InputCollector.ahk2
-#Include lib\ExcelController.ahk2
-#Include lib\MailController.ahk2
-#Include lib\Workflow.ahk2
+#Include lib\Config.ahk
+#Include lib\Logger.ahk
+#Include lib\WaitUtil.ahk
+#Include lib\ErrorHandler.ahk
+#Include lib\InputCollector.ahk
+#Include lib\ExcelController.ahk
+#Include lib\MailController.ahk
+#Include lib\Workflow.ahk
 ;==============================================================
-; Main.ahk2 - 엑셀 소팅 -> 이미지 캡쳐 -> 메일 본문 붙여넣기 -> 발송
+; Main.ahk - 엑셀 소팅 -> 이미지 캡쳐 -> 메일 본문 붙여넣기 -> 발송
 ;
 ;   F1  : 매크로 시작 (2~17번 업무 프로세스 실행)
 ;   Esc : 매크로 중단 및 ahk2 스크립트 종료

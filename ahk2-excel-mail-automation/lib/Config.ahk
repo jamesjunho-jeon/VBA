@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 ;==============================================================
-; Config.ahk2
+; Config.ahk
 ; 매크로 전역 설정값 - 대기시간, 창 식별자, 단축키 등을
 ; 한 곳에서 관리한다. 환경(회사 PC, 메일 서비스 등)이 바뀌면
 ; 이 파일만 수정하면 되도록 모든 "튜닝 가능한 값"을 모았다.
@@ -37,5 +37,5 @@ class Config {
 
     ; ---- 로그 파일 ----
     static LogDir  := A_ScriptDir "\logs"
-    static LogFile => Config.LogDir "\ahk2_mail_" FormatTime(, "yyyyMMdd") ".log"
+    static LogFile => Config.LogDir "\mail_" FormatTime(, "yyyyMMdd") ".log"
 }

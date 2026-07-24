@@ -1,8 +1,8 @@
 #Requires AutoHotkey v2.0
-#Include Config.ahk2
-#Include Logger.ahk2
+#Include Config.ahk
+#Include Logger.ahk
 ;==============================================================
-; ExcelController.ahk2
+; ExcelController.ahk
 ; 업무 정의: 1(엑셀 초기 구성 전제), 9(캡쳐자동화-필터),
 ;            10/14(영역 복사) 단계에서 사용하는 Excel COM 래퍼.
 ;

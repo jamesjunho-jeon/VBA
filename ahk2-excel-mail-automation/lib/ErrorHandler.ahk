@@ -1,8 +1,8 @@
 #Requires AutoHotkey v2.0
-#Include Config.ahk2
-#Include Logger.ahk2
+#Include Config.ahk
+#Include Logger.ahk
 ;==============================================================
-; ErrorHandler.ahk2
+; ErrorHandler.ahk
 ; 업무별 오류처리 정책을 한 곳에서 관리한다.
 ;  - 라운드(필터값 1건) 처리 실패: 재시도 후에도 실패하면
 ;    사용자에게 "건너뛰기/전체중단"을 묻는다.

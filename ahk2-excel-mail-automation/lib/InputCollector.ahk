@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
-#Include Config.ahk2
+#Include Config.ahk
 ;==============================================================
-; InputCollector.ahk2
+; InputCollector.ahk
 ; 업무 정의: 2~8번 단계를 담당한다.
 ;   2. 시작셀 입력   3. 필터시트 입력   4. 필터셀주소 입력
 ;   5. 메일제목 입력  6. 메일주소 입력   7. 반복횟수 입력
